@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 BASEDIR=$(dirname "$0")
-python "$BASEDIR"/main.py
+python2 "$BASEDIR"/main.py
