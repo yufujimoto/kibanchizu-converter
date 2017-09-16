@@ -1,10 +1,16 @@
 import os, sys, codecs, chardet
 import xml.etree.ElementTree as et
+from lxml import etree
 
 # Define the name space.
 ns_opg = "{http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema}"
 ns_fgd = "{http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema}"
 ns_gml = "{http://www.opengis.net/gml/3.2}"
+
+def checkEncoding(filename):
+    with open(filename, 'r') as xmlfile:
+        tree = etree.parse(xmlfile)
+        return(tree.docinfo.encoding.lower())
 
 def openAndWriteDoc(filename, header, data):
     if os.path.exists(filename) != True:
@@ -73,13 +79,17 @@ def convertDem(xmlfile, outdir):
     xmlfl = xmlfile
     outfl = open(output, "a")
     
-    try:
-        # Convert encoding from Shift-JIS to UTF-8.
-        data = codecs.open(xmlfl, mode='rt', encoding='shiftjis').read()
+    # Check the text encoding of the XML file.
+    codec = checkEncoding(xmlfl)
+    
+    # Open the XML file with given encoding.
+    data = codecs.open(xmlfl, mode='rt', encoding=codec).read()
+    
+    # Convert encoding from Shift-JIS to UTF-8 if the encoding is Shift-JIS.
+    if codec == "shift_jis":
         data = data.replace('encoding="Shift_JIS"', 'encoding="utf-8"')
-        data = data.encode('utf-8')
-    except:
-        return(None)
+    
+    data = data.encode('utf-8')
     
     # Parsing the XML string.
     root = et.fromstring(data)
@@ -144,14 +154,22 @@ def convertDem(xmlfile, outdir):
             # Get the each entry and write to CSV file.
             cnt = 0
             
+            print(len(tpl), int(ph)*int(pw))
+            
             for i in range(int(ph), -1, -1):
                 lat = float(lc[0]) + (h * i)
                 for j in range(0, int(pw) + 1):
-                    lon = float(lc[1]) + (w * j)
-                    strln = str(lat) + ":" + str(lon) + ":" + tpl[cnt] + "\n"
-                    strln = strln.encode("utf-8")
-                    outfl.write(strln)
+                    try:
+                        lon = float(lc[1]) + (w * j)
+                        cat, alt = tpl[cnt].split(",")
+                        strln = str(lat) + ":" + str(lon) + ":" + cat + ":" + alt + "\n"
+                        strln = strln.encode("utf-8")
+                        outfl.write(strln)
+                    except:
+                        print("Error:",cnt)
+                        pass
                     cnt = cnt + 1
+                    
     
     outfl.close()
 
