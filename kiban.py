@@ -128,8 +128,12 @@ def convertDem(xmlfile, outdir):
             # Get the geographic boundary.
             lc = bnd.find(".//" + ns_gml + "lowerCorner").text.strip().split(" ")   # Coodinates of the lower corner
             uc = bnd.find(".//" + ns_gml + "upperCorner").text.strip().split(" ")   # Coodinates of the upper corner
+            
             mh = float(uc[0]) - float(lc[0])                                        # Geographic width
             mw = float(uc[1]) - float(lc[1])                                        # Geographic height
+            
+            
+            st_x, st_y = cov.find(".//" + ns_gml + "startPoint").text.strip().split(" ")
             
             # Get the pixcel boundary.
             gdm = cov.find(ns_gml + "gridDomain")
@@ -161,21 +165,19 @@ def convertDem(xmlfile, outdir):
             # Get the each entry and write to CSV file.
             cnt = 0
             
-            print(len(tpl), int(ph)*int(pw))
+            print(len(tpl), int(ph+1)*int(pw))
             
             for i in range(int(ph), -1, -1):
-                lat = float(lc[0]) + (h * i)
-                for j in range(0, int(pw) + 1):
-                    try:
-                        lon = float(lc[1]) + (w * j)
-                        cat, alt = tpl[cnt].split(",")
-                        strln = str(lat) + ":" + str(lon) + ":" + cat + ":" + alt + "\n"
-                        strln = strln.encode("utf-8")
-                        outfl.write(strln)
-                    except:
-                        print("Error:",cnt)
-                        pass
-                    cnt = cnt + 1
+                if i >= st_y:
+                    lat = float(lc[0]) + (h * i)
+                    for j in range(0, int(pw) + 1):
+                        if j >= st_x:
+                            lon = float(lc[1]) + (w * j)
+                            cat, alt = tpl[cnt].split(",")
+                            strln = str(lat) + ":" + str(lon) + ":" + cat + ":" + alt + "\n"
+                            strln = strln.encode("utf-8")
+                            outfl.write(strln)
+                            cnt = cnt + 1
                     
     
     outfl.close()

@@ -53,15 +53,13 @@ def getDir(dir_name, srch_ext):
     srch_dirs = os.listdir(dir_name)
     
     for srch_dir in srch_dirs:
-        if os.path.isdir(os.path.join(dir_name, srch_dir)):
-            lst_xml = lst_xml + getFile(os.path.join(dir_name, srch_dir), srch_ext)
+        srch_file = os.path.join(dir_name, srch_dir)
+        if os.path.isdir(srch_file):
+            lst_xml = lst_xml + getFile(srch_file, srch_ext)
         else:
-            lst_files = os.listdir(dir_name)
-            
-            for lst_file in lst_files:
-                file_name, file_ext = os.path.splitext(lst_file)
-                if file_ext == srch_ext:
-                    lst_xml.append(os.path.join(dir_name, lst_file))
+            file_name, file_ext = os.path.splitext(srch_file)
+            if file_ext == srch_ext:
+                lst_xml.append(srch_file)
     return(lst_xml)
 
 class KibanConverter(QThread):
@@ -235,6 +233,7 @@ class mainPanel(QMainWindow, mainWindow.Ui_MainWindow):
         
         # Get XML files stored in the input directories.
         xml_files = getDir(in_dir, ".xml")
+        print("Number of files: " + str(len(xml_files)))
         
         # Get the feature type for converting: 0 for basic items, and 1 for DEM items.
         feat_type = self.grp_feat_type.checkedId()
