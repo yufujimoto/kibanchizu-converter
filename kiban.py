@@ -1,6 +1,7 @@
 import os, sys, codecs, chardet
 import xml.etree.ElementTree as et
 from lxml import etree
+from lxml.etree import XMLParser, parse
 
 # Define the name space.
 ns_opg = "{http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema}"
@@ -8,8 +9,10 @@ ns_fgd = "{http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema}"
 ns_gml = "{http://www.opengis.net/gml/3.2}"
 
 def checkEncoding(filename):
+    p = XMLParser(huge_tree=True)
+    
     with open(filename, 'r') as xmlfile:
-        tree = etree.parse(xmlfile)
+        tree = etree.parse(xmlfile,parser=p)
         return(tree.docinfo.encoding.lower())
 
 def openAndWriteDoc(filename, header, data):
@@ -77,7 +80,7 @@ def convertDem(xmlfile, outdir):
     
     # Read the XML file.
     xmlfl = xmlfile
-    outfl = open(output, "a")
+    
     
     # Check the text encoding of the XML file.
     codec = checkEncoding(xmlfl)
@@ -95,8 +98,12 @@ def convertDem(xmlfile, outdir):
     root = et.fromstring(data)
     dems = root.findall(ns_opg + 'DEM')
     
-    # Write the first column.
-    outfl.write("Latitude:Longitude:Category:Altitude\n")
+    # Open the output file and Write the first column if required.
+    if not os.path.exists(output):
+        outfl = open(output, "w")
+        outfl.write("Latitude:Longitude:Category:Altitude\n")
+    else:
+        outfl = open(output, "a")
     
     for dem in dems:
         # Get the metadata information.
