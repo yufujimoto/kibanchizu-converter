@@ -77,16 +77,16 @@ def convertDem(xmlfile, outdir):
     ns_gml = "{http://www.opengis.net/gml/3.2}"
     
     output = os.path.join(outdir, "dem.txt")
+    logfile = os.path.join(outdir, "log.txt")
     
     # Read the XML file.
     xmlfl = xmlfile
     
-    
     # Check the text encoding of the XML file.
-    codec = checkEncoding(xmlfl)
+    codec = checkEncoding(xmlfile)
     
     # Open the XML file with given encoding.
-    data = codecs.open(xmlfl, mode='rt', encoding=codec).read()
+    data = codecs.open(xmlfile, mode='rt', encoding=codec).read()
     
     # Convert encoding from Shift-JIS to UTF-8 if the encoding is Shift-JIS.
     if codec == "shift_jis":
@@ -106,9 +106,6 @@ def convertDem(xmlfile, outdir):
         outfl = open(output, "a")
     
     for dem in dems:
-        # Get the metadata information.
-        print dem.tag, dem.attrib
-        
         fid = dem.find(ns_fgd + "fid").text                                         # Feature ID
         frm = dem.find(ns_fgd + "lfSpanFr").find(ns_gml + "timePosition").text      # Date from
         ddt = dem.find(ns_fgd + "devDate").find(ns_gml + "timePosition").text       # Date of developed
@@ -126,37 +123,26 @@ def convertDem(xmlfile, outdir):
             srs = bnd.find(ns_gml + "Envelope").get("srsName")                      # SRS name
             
             # Get the geographic boundary.
-            lc = bnd.find(".//" + ns_gml + "lowerCorner").text.strip().split(" ")   # Coodinates of the lower corner
-            uc = bnd.find(".//" + ns_gml + "upperCorner").text.strip().split(" ")   # Coodinates of the upper corner
+            lower_lat, lower_lon = bnd.find(".//" + ns_gml + "lowerCorner").text.strip().split(" ")     # Coodinates of the lower corner
+            upper_lat, upper_lon = bnd.find(".//" + ns_gml + "upperCorner").text.strip().split(" ")     # Coodinates of the upper corner
             
-            mh = float(uc[0]) - float(lc[0])                                        # Geographic width
-            mw = float(uc[1]) - float(lc[1])                                        # Geographic height
+            geo_w = float(upper_lon) - float(lower_lon)                                                 # Geographic width 
+            geo_h = float(upper_lat) - float(lower_lat)                                                 # Geographic height
             
-            
-            st_x, st_y = cov.find(".//" + ns_gml + "startPoint").text.strip().split(" ")
             
             # Get the pixcel boundary.
             gdm = cov.find(ns_gml + "gridDomain")
-            gl = gdm.find(".//" + ns_gml + "low").text.strip().split(" ")
-            gh = gdm.find(".//" + ns_gml + "high").text.strip().split(" ")
-            pw = int(gh[0]) - int(gl[0])                                            # Width in pixel
-            ph = int(gh[1]) - int(gl[1])                                            # Height in pixel
+            pixLow_x, pixLow_y = gdm.find(".//" + ns_gml + "low").text.strip().split(" ")
+            pixHigh_x, pixHigh_y = gdm.find(".//" + ns_gml + "high").text.strip().split(" ")
             
-            # Get the pixcel size in geographic space.
-            w = mw / pw
-            h = mh / ph
+            # Get the start point to parse.
+            start_x, start_y = cov.find(".//" + ns_gml + "startPoint").text.strip().split(" ")
             
-            # Scale to grid centroid area
-            lc[0] = float(lc[0])-(h/2)
-            lc[1] = float(lc[1])+(w/2)
-            uc[0] = float(uc[0])+(h/2)
-            uc[1] = float(uc[1])-(w/2)
+            pix_w = float(pixHigh_x) - float(pixLow_x) + 1                                            # Width in pixel
+            pix_h = float(pixHigh_y) - float(pixLow_y) + 1                                            # Height in pixel
             
-            mh = float(uc[0]) - float(lc[0])
-            mw = float(uc[1]) - float(lc[1]) 
-            
-            w = mw / pw
-            h = mh / ph
+            w = geo_w / pix_w
+            h = geo_h / pix_h
             
             # Get the record.
             rst = cov.find(ns_gml + "rangeSet")
@@ -164,21 +150,30 @@ def convertDem(xmlfile, outdir):
             
             # Get the each entry and write to CSV file.
             cnt = 0
+            strln = ""
             
-            print(len(tpl), int(ph+1)*int(pw))
-            
-            for i in range(int(ph), -1, -1):
-                if i >= st_y:
-                    lat = float(lc[0]) + (h * i)
-                    for j in range(0, int(pw) + 1):
-                        if j >= st_x:
-                            lon = float(lc[1]) + (w * j)
-                            cat, alt = tpl[cnt].split(",")
-                            strln = str(lat) + ":" + str(lon) + ":" + cat + ":" + alt + "\n"
-                            strln = strln.encode("utf-8")
-                            outfl.write(strln)
-                            cnt = cnt + 1
-                    
+            for i in range(int(pix_h)-1,-1,-1):
+                if i >= int(start_y):
+                    lat = float(lower_lat) + (h * i)
+                    for j in range(0, int(pix_w)):
+                        if i == int(start_y) and j < int(start_x):
+                            pass
+                        else:
+                            if not cnt >= len(tpl):
+                                lon = float(lower_lon) + (w * j)
+                                cat, alt = tpl[cnt].split(",")
+                                if not float(alt) < -9990.000:
+                                    strln = str(lat) + ":" + str(lon) + ":" + cat + ":" + alt + "\n"
+                                    strln = strln.encode("utf-8")
+                                    outfl.write(strln)
+                                cnt = cnt + 1
+                            else:
+                                pass
+            if not cnt == len(tpl):
+                print("Error!!")
+                error =   str(int(pix_h*pix_w)) + "," + str(len(tpl)) + "," + str(start_x) + "," + str(start_y) + "," + xmlfile
+                log = open(logfile, "a")
+                log.write(error + "\n")
     
     outfl.close()
 

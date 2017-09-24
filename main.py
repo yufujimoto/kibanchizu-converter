@@ -82,7 +82,7 @@ class KibanConverter(QThread):
     
     def run(self):
         # Initialyze the counter.
-        count = 0
+        count = 1
         
         for xml_file in self.xml_files:
             # Select the input feature type.
@@ -107,7 +107,7 @@ class KibanConverter(QThread):
                 return(None)
             
             # Calculate prgress in percentage.
-            prog = (float(count) / float(self.file_num - 1)) * 100
+            prog = (float(count) / float(self.file_num)) * 100
             
             # Emit the value.
             self.countChanged.emit(int(prog))
