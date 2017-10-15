@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os, sys, codecs, chardet
 import xml.etree.ElementTree as et
 from lxml import etree
@@ -7,6 +10,7 @@ from lxml.etree import XMLParser, parse
 ns_opg = "{http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema}"
 ns_fgd = "{http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema}"
 ns_gml = "{http://www.opengis.net/gml/3.2}"
+ns_jmp = "{http://zgate.gsi.go.jp/ch/jmp}"
 
 def checkEncoding(filename):
     p = XMLParser(huge_tree=True)
